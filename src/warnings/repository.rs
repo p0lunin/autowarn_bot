@@ -1,12 +1,7 @@
 use crate::warnings::dto::{
-    OnWarnAction, Punishment, PunishmentKind, PunishmentTime, UserWarning, WarningGroup,
-    WarningInfo,
+    OnWarnAction, PunishmentKind, PunishmentTime, UserWarning, WarningGroup, WarningInfo,
 };
-use mongodb::{
-    bson::{doc, Document},
-    options::UpdateOptions,
-    Collection, Database,
-};
+use mongodb::{bson::doc, options::UpdateOptions, Collection, Database};
 use teloxide::prelude::StreamExt;
 
 #[derive(Debug, Clone)]
