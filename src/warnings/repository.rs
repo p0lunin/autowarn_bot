@@ -57,6 +57,11 @@ impl WarnsRepository {
         Ok(())
     }
 
+    pub async fn insert_warn_type(&self, ty: WarningInfo) -> Result<(), mongodb::error::Error> {
+        self.warning_types.insert_one(ty, None).await?;
+        Ok(())
+    }
+
     pub async fn insert_warn(&self, warn: UserWarning) -> Result<(), mongodb::error::Error> {
         self.actual_warns.insert_one(warn, None).await.map(|_| ())
     }
@@ -125,5 +130,12 @@ impl WarnsRepository {
             .await
             .into_iter()
             .collect::<Result<Vec<_>, _>>()
+    }
+
+    pub async fn get_warn_group(
+        &self,
+        group: &str,
+    ) -> Result<Option<WarningGroup>, mongodb::error::Error> {
+        self.warning_groups.find_one(doc! { "name": group }, None).await
     }
 }
