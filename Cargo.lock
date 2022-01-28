@@ -63,6 +63,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
+name = "autowarn_bot"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "log",
+ "mongodb",
+ "pretty_env_logger",
+ "serde",
+ "teloxide",
+ "tokio",
+]
+
+[[package]]
 name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1315,20 +1329,6 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi",
-]
-
-[[package]]
-name = "roff_bot"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "log",
- "mongodb",
- "pretty_env_logger",
- "serde",
- "teloxide",
- "tokio",
 ]
 
 [[package]]
