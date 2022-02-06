@@ -11,7 +11,7 @@ use crate::{
         commands::{SetupWarnsCommands, WarnsCommand},
         repository::WarnsRepository,
     },
-    HandlerOut, TBot, BOT_NAME,
+    HandlerOut, TBot,
 };
 use teloxide::prelude2::*;
 
@@ -19,47 +19,41 @@ type WarnsStorage = InMemStorage<SetupWarnState>;
 
 pub fn setup_warnings_handler(storage: Arc<WarnsStorage>) -> crate::Handler {
     utils::filter_chat_owner()
-        .branch(
-            dptree::entry()
-                .add_command::<WarnsCommand>(BOT_NAME.into())
-                .endpoint(handle_warns_commands),
-        )
+        .branch(dptree::entry().filter_command::<WarnsCommand>().endpoint(handle_warns_commands))
         .branch(
             dptree::filter_map(move || {
                 let storage = storage.clone();
-                async move { Some(storage) }
+                Some(storage)
             })
-            .add_dialogue::<Message, WarnsStorage, SetupWarnState>()
+            .enter_dialogue::<Message, WarnsStorage, SetupWarnState>()
             .branch(
                 dptree::entry()
-                    .add_command::<SetupWarnsCommands>(BOT_NAME.into())
-                    .chain(dptree::filter(|x: Dialogue<SetupWarnState, WarnsStorage>| async move {
-                        match x.current_state().await.unwrap() {
-                            Some(y) => {
+                    .filter_command::<SetupWarnsCommands>()
+                    .chain(dptree::filter_async(
+                        |x: Dialogue<SetupWarnState, WarnsStorage>| async move {
+                            if let Some(y) = x.get().await.unwrap() {
                                 if matches!(y, SetupWarnState::WaitForWarnGroup(0)) {
                                     x.exit().await.unwrap();
                                 }
                             }
-                            None => {}
-                        }
-                        true
-                    }))
+                            true
+                        },
+                    ))
                     .endpoint(setup_warns::handle_setup_warns_commands),
             )
             .branch(
                 dptree::entry()
-                    .chain(dptree::filter(|x: Dialogue<SetupWarnState, WarnsStorage>| async move {
-                        match x.current_state().await.unwrap() {
-                            Some(y) => {
+                    .chain(dptree::filter_async(
+                        |x: Dialogue<SetupWarnState, WarnsStorage>| async move {
+                            if let Some(y) = x.get().await.unwrap() {
                                 if matches!(y, SetupWarnState::WaitForWarnGroup(0)) {
                                     x.exit().await.unwrap();
                                     return false;
                                 }
                             }
-                            None => {}
-                        }
-                        true
-                    }))
+                            true
+                        },
+                    ))
                     .dispatch_by::<SetupWarnState>(),
             ),
         )
@@ -69,9 +63,9 @@ pub fn setup_warnings_callback_queries_handler(storage: Arc<WarnsStorage>) -> cr
     dptree::entry().branch(
         dptree::filter_map(move || {
             let storage = storage.clone();
-            async move { Some(storage) }
+            Some(storage)
         })
-        .add_dialogue::<CallbackQuery, WarnsStorage, SetupWarnState>()
+        .enter_dialogue::<CallbackQuery, WarnsStorage, SetupWarnState>()
         .endpoint(setup_warns::wait_for_on_warn_callback_query_handler),
     )
 }

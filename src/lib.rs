@@ -16,7 +16,7 @@ use teloxide::{
 pub type TBot = AutoSend<Trace<Bot>>;
 pub type HandlerOut = Result<(), anyhow::Error>;
 pub type Handler = UpdateHandler<anyhow::Error>;
-pub const BOT_NAME: &'static str = "autowarn_bot";
+pub const BOT_NAME: &str = "autowarn_bot";
 
 pub async fn setup_dispatcher(bot: Bot, db: Database) -> Dispatcher<TBot, anyhow::Error> {
     use teloxide::prelude2::*;
@@ -26,12 +26,16 @@ pub async fn setup_dispatcher(bot: Bot, db: Database) -> Dispatcher<TBot, anyhow
     let storage = InMemStorage::new();
     repo.insert_default_values().await.unwrap();
 
-    Dispatcher::new(bot.clone())
-        .dependencies(dptree::deps![repo, db])
-        .messages_handler(|h| {
-            h.branch(setup_warnings_handler(storage.clone())).branch(setup_simple_commands())
-        })
-        .callback_queries_handler(|h| {
-            h.branch(setup_warnings_callback_queries_handler(storage.clone()))
-        })
+    let handler = dptree::entry()
+        .branch(
+            Update::filter_message()
+                .branch(setup_warnings_handler(storage.clone()))
+                .branch(setup_simple_commands()),
+        )
+        .branch(
+            Update::filter_callback_query()
+                .branch(setup_warnings_callback_queries_handler(storage.clone())),
+        );
+
+    Dispatcher::builder(bot.clone(), handler).dependencies(dptree::deps![repo, db]).build()
 }

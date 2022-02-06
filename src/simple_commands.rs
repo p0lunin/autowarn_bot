@@ -1,4 +1,4 @@
-use crate::{dptree, Message, TBot, BOT_NAME};
+use crate::{dptree, Message, TBot};
 use teloxide::{prelude2::*, types::ParseMode, utils::command::BotCommand};
 
 #[derive(Debug, Clone, BotCommand)]
@@ -11,7 +11,7 @@ pub enum SimpleCommands {
 }
 
 pub fn setup_simple_commands() -> crate::Handler {
-    dptree::entry().add_command::<SimpleCommands>(BOT_NAME.into()).branch(dptree::endpoint(
+    dptree::entry().filter_command::<SimpleCommands>().branch(dptree::endpoint(
         |bot: TBot, mes: Message, cmd: SimpleCommands| async move {
             let text = match cmd {
                 SimpleCommands::MyId => {

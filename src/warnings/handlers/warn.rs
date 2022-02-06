@@ -44,7 +44,7 @@ async fn punish_user(
     punishment: &Punishment,
 ) -> HandlerOut {
     let mes_time =
-        DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(mes.date as i64, 0), Utc);
+        DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(mes.date.timestamp(), 0), Utc);
     let punishment_time = match punishment.time {
         PunishmentTime::Time(d) => Duration::seconds(d as i64),
         // If we restrict user until `now` time, telegram will restrict user forever.
@@ -54,12 +54,10 @@ async fn punish_user(
 
     match punishment.kind {
         PunishmentKind::Ban => {
-            bot.ban_chat_member(mes.chat.id, user_id)
-                .until_date(until_time.timestamp() as u64)
-                .await?;
+            bot.ban_chat_member(mes.chat.id, user_id).until_date(until_time).await?;
         }
         PunishmentKind::Mute => {
-            bot.restrict_chat_member(mes.chat.id, user_id, ChatPermissions::default())
+            bot.restrict_chat_member(mes.chat.id, user_id, ChatPermissions::empty())
                 .until_date(until_time)
                 .await?;
         }
@@ -74,7 +72,7 @@ async fn punish_user(
 fn message_user_punished(user: &User, punishment: &Punishment) -> String {
     let time = match punishment.time {
         PunishmentTime::Time(s) => format!("for a {} seconds.", s),
-        PunishmentTime::Forever => format!("forever!"),
+        PunishmentTime::Forever => "forever!".to_string(),
     };
     match punishment.kind {
         PunishmentKind::Mute => {
