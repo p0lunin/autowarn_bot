@@ -1,5 +1,5 @@
+use autowarn_bot::setup_dispatcher;
 use mongodb::{options::ClientOptions, Client, Database};
-use roff_bot::setup_dispatcher;
 use teloxide::prelude2::*;
 
 #[tokio::main]

@@ -21,14 +21,11 @@ pub async fn handle_setup_warns_commands(
 ) -> HandlerOut {
     match cmd {
         SetupWarnsCommands::NewWarn { chat_id } => {
-            match dialogue.current_state().await? {
-                Some(_) => {
-                    bot.send_message(mes.chat.id, "You already setup new warn type.").await?;
-                    return Ok(());
-                }
-                None => {}
-            };
-            dialogue.next(SetupWarnState::WaitForWarnGroup(chat_id)).await?;
+            if dialogue.get().await?.is_some() {
+                bot.send_message(mes.chat.id, "You already setup new warn type.").await?;
+                return Ok(());
+            }
+            dialogue.update(SetupWarnState::WaitForWarnGroup(chat_id)).await?;
             bot.send_message(
                 mes.chat.id,
                 "Good. Send me the name of the warn group the warn must relate to.",
@@ -113,7 +110,7 @@ async fn wait_for_warn_group_handler(
             return Ok(());
         }
     };
-    dialogue.next(SetupWarnState::WaitForPoints(WaitForPointsState { chat_id, group })).await?;
+    dialogue.update(SetupWarnState::WaitForPoints(WaitForPointsState { chat_id, group })).await?;
     bot.send_message(
         mes.chat.id,
         "Good. Now send me amount of the points the user will receive by this warn.",
@@ -145,7 +142,7 @@ async fn wait_for_points_handler(
         }
     };
     dialogue
-        .next(SetupWarnState::WaitForTrigger(WaitForTriggerState {
+        .update(SetupWarnState::WaitForTrigger(WaitForTriggerState {
             chat_id: state.chat_id,
             group: state.group,
             max_points,
@@ -173,16 +170,13 @@ async fn wait_for_trigger_handler(
         Some(t) => t.to_string(),
         None => return Ok(()),
     };
-    match repo.find_warn_by_trigger(&trigger).await? {
-        Some(_) => {
-            bot.send_message(mes.chat.id, "Warn with such trigger already exists.").await?;
-            return Ok(());
-        }
-        _ => {}
-    };
+    if repo.find_warn_by_trigger(&trigger).await?.is_some() {
+        bot.send_message(mes.chat.id, "Warn with such trigger already exists.").await?;
+        return Ok(());
+    }
 
     dialogue
-        .next(SetupWarnState::WaitForOnWarn(WaitForOnWarnState {
+        .update(SetupWarnState::WaitForOnWarn(WaitForOnWarnState {
             chat_id: state.chat_id,
             group: state.group,
             max_points: state.max_points,
@@ -222,11 +216,11 @@ pub async fn wait_for_on_warn_callback_query_handler(
     d: Dialogue,
     repo: WarnsRepository,
 ) -> HandlerOut {
-    let state = match d.current_state().await? {
+    let state = match d.get().await? {
         Some(SetupWarnState::WaitForOnWarn(x)) => x,
         _ => return Ok(()),
     };
-    let on_warn = match q.data.as_ref().map(|x| x.as_str()) {
+    let on_warn = match q.data.as_deref() {
         Some("delete") => OnWarnAction::DeleteMessage,
         Some("nothing") => OnWarnAction::Nothing,
         Some(other) => {
